@@ -23,10 +23,11 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const chainId = network.name === "mainnet" ? 42 : await getChainId();
 
     const { address: orderBook } = await deployments.get('SafeBscOrderBook');
+    const { address: safeBscRouter } = await deployments.get('SafeBscRouter');
 
     const { address: settlement } = await deploy("SafeBscSettlement", {
         contract,
-        args: [chainId, orderBook, await getFactoryAddress()],
+        args: [chainId, orderBook, await getFactoryAddress(), safeBscRouter],
         from: deployer,
         log: true,
         gasLimit: 5000000,
@@ -39,4 +40,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 };
 
 module.exports.tags = ["SafeBscSettlement"]
-module.exports.dependencies = ['SafeBscOrderBook']
+module.exports.dependencies = ['SafeBscOrderBook', 'SafeBscRouter']
