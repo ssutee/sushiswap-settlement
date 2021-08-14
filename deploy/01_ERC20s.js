@@ -51,7 +51,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         // await deployERC20(deterministic, deployer, "OMG Network", "OMG", 18);
         // await deployERC20(deterministic, deployer, "BAT", "BAT", 18);
     }
-    if (network.name !== "mainnet") {
+    if (network.name !== "mainnet" || network.name != "bsc") {
         await deployERC20(deterministic, deployer, "SushiToken", "SUSHI", 18);
     }
 };

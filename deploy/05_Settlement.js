@@ -14,10 +14,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     };
     if (network.name === "hardhat") {
         const testInitCodeHash = await call("UniswapV2Factory", "pairCodeHash");
-        contract.bytecode = contract.bytecode.replace(
-            new RegExp(INIT_CODE_HASH, "g"),
-            testInitCodeHash.substring(2)
-        );
+        contract.bytecode = contract.bytecode.replace(new RegExp(INIT_CODE_HASH, "g"), testInitCodeHash.substring(2));
     }
 
     const chainId = network.name === "mainnet" ? 42 : await getChainId();
@@ -25,11 +22,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         from: deployer,
         log: true,
     });
-    await deploy("Settlement", {
-        contract,
-        args: [chainId, orderBook, await getFactoryAddress()],
-        from: deployer,
-        log: true,
-        gasLimit: 5000000,
-    });
+    if (network.name != "bsc") {
+        await deploy("Settlement", {
+            contract,
+            args: [chainId, orderBook, await getFactoryAddress()],
+            from: deployer,
+            log: true,
+            gasLimit: 5000000,
+        });
+    }
 };

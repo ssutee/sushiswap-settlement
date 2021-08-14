@@ -5,7 +5,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy } = deployments;
 
     const settlement = await ethers.getContract("Settlement", deployer);
-    if (network.name !== "mainnet") {
+    if (network.name !== "mainnet" && network.name != "bsc") {
         await deploy("SettlementCaller", {
             args: [settlement.address],
             from: deployer,

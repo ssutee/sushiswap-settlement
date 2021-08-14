@@ -24,6 +24,13 @@ module.exports = {
             live: false,
             saveDeployments: true,
         },
+        bsc: {
+          url: process.env.BSC_RPC,
+          chainId: 56,
+          accounts: {mnemonic: process.env.MNEMONIC},
+          live: true,
+          saveDeployments: true,
+        }
         // kovan: {
         //     url: "https://eth-kovan.alchemyapi.io/v2/PMRs9b7XcmbELUeDN8zF_ZbKY5W4ktW2",
         //     accounts: [process.env.PRIVATE_KEY],

@@ -14,16 +14,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     };
     if (network.name === "hardhat") {
         const testInitCodeHash = await call("UniswapV2Factory", "pairCodeHash");
-        contract.bytecode = contract.bytecode.replace(
-            new RegExp(INIT_CODE_HASH, "g"),
-            testInitCodeHash.substring(2)
-        );
+        contract.bytecode = contract.bytecode.replace(new RegExp(INIT_CODE_HASH, "g"), testInitCodeHash.substring(2));
     }
 
     const chainId = network.name === "mainnet" ? 42 : await getChainId();
 
-    const { address: orderBook } = await deployments.get('SafeBscOrderBook');
-    const { address: safeBscRouter } = await deployments.get('SafeBscRouter');
+    const { address: orderBook } = await deployments.get("SafeBscOrderBook");
+    const { address: safeBscRouter } = await deployments.get("SafeBscRouter");
 
     const { address: settlement } = await deploy("SafeBscSettlement", {
         contract,
@@ -33,11 +30,16 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         gasLimit: 5000000,
     });
 
-    await execute('SafeBscOrderBook', {
-      from:deployer, 
-      log: true
-    }, 'setSettlementAddress', settlement);
+    await execute(
+        "SafeBscOrderBook",
+        {
+            from: deployer,
+            log: true,
+        },
+        "setSettlementAddress",
+        settlement
+    );
 };
 
-module.exports.tags = ["SafeBscSettlement"]
-module.exports.dependencies = ['SafeBscOrderBook', 'SafeBscRouter']
+module.exports.tags = ["SafeBscSettlement"];
+module.exports.dependencies = ["SafeBscOrderBook", "SafeBscRouter"];

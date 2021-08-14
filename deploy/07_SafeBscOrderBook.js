@@ -1,9 +1,9 @@
 const { network, ethers } = require("hardhat");
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
-    const { deployer } = await getNamedAccounts();    
+    const { deployer } = await getNamedAccounts();
     const { deploy } = deployments;
-    
+
     await deploy("SafeBscOrderBook", {
         from: deployer,
         args: [ethers.utils.parseEther("0.01")],
@@ -11,4 +11,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     });
 };
 
-module.exports.tags = ["SafeBscOrderBook"]
+module.exports.tags = ["SafeBscOrderBook"];
