@@ -3,16 +3,19 @@
 pragma solidity =0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/SafeMath.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/TransferHelper.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/UniswapV2Library.sol";
 import "@sushiswap/core/contracts/uniswapv2/interfaces/IERC20.sol";
 import "./interfaces/ISafeBscSettlement.sol";
 import "./interfaces/ISafeBscOrderBook.sol";
+import "./interfaces/ISafeBscRouter.sol";
 import "./libraries/SafeBscOrders.sol";
 import "./libraries/EIP712.sol";
 
-contract SafeBscSettlement is ISafeBscSettlement {
+contract SafeBscSettlement is ISafeBscSettlement, ReentrancyGuard, Ownable {
     using SafeMathUniswap for uint256;
     using SafeBscOrders for SafeBscOrders.Order;
 
@@ -25,12 +28,16 @@ contract SafeBscSettlement is ISafeBscSettlement {
     mapping(bytes32 => uint256) public filledAmountInOfHash;
 
     address public immutable factory;
+    
     address public orderBookAddress;
+
+    address public safeBscRouter;
 
     constructor(
         uint256 orderBookChainId,
         address _orderBookAddress,
-        address _factory
+        address _factory,
+        address _safeBscRouter
     ) public {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -41,9 +48,9 @@ contract SafeBscSettlement is ISafeBscSettlement {
                 _orderBookAddress
             )
         );
-
         factory = _factory;
         orderBookAddress = _orderBookAddress;
+        safeBscRouter = _safeBscRouter;
     }
 
     fallback() external payable {}
@@ -51,7 +58,8 @@ contract SafeBscSettlement is ISafeBscSettlement {
     receive() external payable {}
 
     // Fills an order
-    function fillOrder(FillOrderArgs memory args) public override returns (uint256 amountOut) {
+    function fillOrder(FillOrderArgs memory args) 
+        public override nonReentrant returns (uint256 amountOut) {
         // voids flashloan attack vectors
         // solhint-disable-next-line avoid-tx-origin
         require(msg.sender == tx.origin, "called-by-contract");
@@ -72,20 +80,39 @@ contract SafeBscSettlement is ISafeBscSettlement {
         if (args.amountToFillIn < args.order.amountIn) {
             feeAmount = (args.order.fee.mul(args.amountToFillIn) / args.order.amountIn);
         }
-        
-        // Requires args.amountToFillIn to have already been approved to this
-        amountOut = _swapExactTokensForTokens(
-            args.order.maker,
-            args.amountToFillIn,
-            amountOutMin,
-            args.path,
-            args.order.recipient
+
+        IERC20Uniswap(args.order.fromToken).transferFrom(
+            args.order.maker, 
+            address(this), 
+            args.amountToFillIn
         );
+
+        IERC20Uniswap(args.order.fromToken).approve(
+            safeBscRouter, 
+            args.amountToFillIn
+        );
+
+        uint256[] memory amounts = ISafeBscRouter(
+            safeBscRouter
+        ).swapExactTokensForTokens(            
+            args.router, 
+            args.amountToFillIn, 
+            amountOutMin, 
+            args.path, 
+            args.order.recipient, 
+            now.add(60)
+        );
+        amountOut = amounts[amounts.length - 1];
+
 
         // This line is free from reentrancy issues since UniswapV2Pair prevents from them
         filledAmountInOfHash[hash] = filledAmountInOfHash[hash].add(args.amountToFillIn);
 
-        msg.sender.transfer(feeAmount);
+        if (feeAmount > 0) {
+            msg.sender.transfer(feeAmount);
+            emit FeeTransferred(hash, msg.sender, feeAmount);
+        }
+        
 
         emit OrderFilled(hash, args.amountToFillIn, amountOut);
     }
@@ -153,5 +180,11 @@ contract SafeBscSettlement is ISafeBscSettlement {
         }
 
         emit OrderCanceled(hash);
+    }
+
+    function setSafeBscRouter(address _safeBscRouter) external onlyOwner {
+        require(_safeBscRouter != address(0),"invalid-address");
+        require(_safeBscRouter != safeBscRouter, "same-value");
+        _safeBscRouter = safeBscRouter;
     }
 }
