@@ -86,12 +86,13 @@ module.exports = async () => {
         return await settlement.cancelOrder(await order.hash(overrides));
     };
 
-    const fillOrder = async (signer, order, trade, overrides = {}) => {
+    const fillOrder = async (signer, order, trade, router, overrides = {}) => {
         const settlement = await getContract("SafeBscSettlement", signer);
         return await settlement.fillOrder([
             await order.toArgs(overrides),
             overrides.amountToFillIn || trade.inputAmount.raw.toString(),
             overrides.path || trade.route.path.map(token => token.address),
+            router
         ]);
     };
 
