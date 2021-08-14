@@ -41,6 +41,7 @@ module.exports = {
         deployer: 0,
         relayer: 1,
         user: 2,
+        feeCollector: 3,
     },
     gasReporter: {
         enabled: !!process.env.REPORT_GAS,
